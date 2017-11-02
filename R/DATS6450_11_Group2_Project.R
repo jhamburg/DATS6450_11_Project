@@ -4,7 +4,7 @@ library(tidyverse)
 dataDir <- file.path('data', '199807')
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-# Read in Files 
+# Read in Files ----
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 # Hand Database ----
@@ -68,3 +68,12 @@ playerColNames <- c('player', 'timestamp', 'num_players', 'position', 'preflop',
                     'winnings', 'card1', 'card2')
 
 names(player_data) <- playerColNames
+
+# update timestamp class to merge
+player_data$timestamp <- as.numeric(player_data$timestamp)
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Merge Files ----
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+allDat <- merge(hdb, player_data, by = 'timestamp', all.x = TRUE)
