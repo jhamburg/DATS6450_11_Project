@@ -3,11 +3,12 @@ library(tidyverse)
 
 dataDir <- file.path('data', '199807')
 
-#~~~~~~~~~~~~~~~~~~~~~~~~~
-# Read in Files ---- 
-#~~~~~~~~~~~~~~~~~~~~~~~~~
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Read in Files 
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-# Hand Database 
+# Hand Database ----
+
 hdbFile <- file.path(dataDir, 'hdb')
 hdbColNames <- c('timestamp', 'dealer', 'hand_num', 'num_players',
               'flop', 'turn', 'river', 'showdown', 'card1', 
@@ -16,9 +17,6 @@ hdbColNames <- c('timestamp', 'dealer', 'hand_num', 'num_players',
 # Read in HDB table
 hdbRaw <- data.table::fread(hdbFile, header = FALSE, fill = TRUE, 
                          col.names = hdbColNames)
-
-# hdbRaw <- readr::read_fwf(hdbFile, readr::fwf_empty(hdbFile), na = c(NA, ' '))
-# names(hdbRaw) <- colNames
 
 # Splits up flop, turn, river, and showdown 
 cleanHDB <- function(hdbRaw) {
@@ -41,49 +39,32 @@ cleanHDB <- function(hdbRaw) {
 hdb <- cleanHDB(hdbRaw)
 
 
-# Roster Database
+# Roster Database ----
+
 rosterFile <- file.path(dataDir, 'hroster')
 roster <- data.table::fread(rosterFile, header = FALSE, fill = TRUE)
 
 
-# Player Database
+# Player Database ----
+
+# Gets a list of all player files since each player's data is in a separate file
 pdbDir <- file.path(dataDir, 'pdb')
 playerFiles <- list.files(pdbDir)
 
-playerColNames <- c('player', 'timestamp', 'num_players', 'position', 'preflop',
-                    'flop', 'turn', 'river', 'bankroll', 'action', 
-                    'winnings', 'card1', 'card2')
-
+# Read in player data
 readPlayerDatabase <- function(player) {
   infile <- file.path(pdbDir, player)
-  # numLines <- R.utils::countLines(infile)
-  # # 
-  # i <- numLines
-  # numCols <- 0
-  # while (numCols != 13 && i > 0) {
-  # # while (numCols != 13 && i < numLines) {
-  #   colPositions <- readr::fwf_empty(infile, n = i)
-  #   numCols <- length(colPositions$begin)
-  #   i <- i - 1
-  #   if (i == 1) stop('Could not find just 1 column')
-  # }
-
-  # # data.table::fread(file.path(pdbDir, player), header = FALSE, fill = TRUE, 
-  # #                   col.names = playerColNames)
-  # 
-  # readr::read_fwf(infile, colPositions, na = c(NA, ' '))
-  # readr::read_table2(infile, col_names = FALSE, na = " ", guess_max = numLines)
   scan(infile, what = as.list(rep("", 13)), sep = '', fill = TRUE, 
        na.strings = "") %>% as.data.table
-             # stringsAsFactors = TRUE, strip.white = FALSE)
 }
 
 player_data <- 
   lapply(playerFiles, readPlayerDatabase) %>% 
   data.table::rbindlist(use.names = TRUE)
 
+# Update column names
+playerColNames <- c('player', 'timestamp', 'num_players', 'position', 'preflop',
+                    'flop', 'turn', 'river', 'bankroll', 'action', 
+                    'winnings', 'card1', 'card2')
+
 names(player_data) <- playerColNames
-
-
-
-
