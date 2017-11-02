@@ -7,17 +7,39 @@ dataDir <- file.path('data', '199807')
 # Read in Files ---- 
 #~~~~~~~~~~~~~~~~~~~~~~~~~
 
-# Hand Database
+# Hand Database 
 hdbFile <- file.path(dataDir, 'hdb')
 hdbColNames <- c('timestamp', 'dealer', 'hand_num', 'num_players',
               'flop', 'turn', 'river', 'showdown', 'card1', 
               'card2', 'card3' ,'card4', 'card5')
 
-
-readr::read_fwf(hdbFile, readr::fwf_empty(hdbFile), na = c(NA, ' '))
-
-hdb <- data.table::fread(hdbFile, header = FALSE, fill = TRUE, 
+# Read in HDB table
+hdbRaw <- data.table::fread(hdbFile, header = FALSE, fill = TRUE, 
                          col.names = hdbColNames)
+
+# hdbRaw <- readr::read_fwf(hdbFile, readr::fwf_empty(hdbFile), na = c(NA, ' '))
+# names(hdbRaw) <- colNames
+
+# Splits up flop, turn, river, and showdown 
+cleanHDB <- function(hdbRaw) {
+  
+  hdbTmp <- copy(hdbRaw)
+  newColNames <- c('num_players_flop', 'potsize_flop', 'num_players_turn',
+                   'potsize_turn', 'num_players_river', 'potsize_river', 
+                   'num_players_showdown', 'potsize_showdown')
+  
+  vars <- c('flop', 'turn', 'river', 'showdown')
+
+  for (var in vars) {
+    newCols <- grep(var, newColNames, ignore.case = TRUE, value = TRUE)
+    hdbTmp <- tidyr::separate_(hdbTmp, var, newCols, sep = '/')
+  }
+  
+  return(hdbTmp)
+}
+
+hdb <- cleanHDB(hdbRaw)
+
 
 # Roster Database
 rosterFile <- file.path(dataDir, 'hroster')
@@ -63,8 +85,5 @@ player_data <-
 names(player_data) <- playerColNames
 
 
-c('num_players_flop', 'potsize_flop', 'num_players_turn',
-'potsize_turn', 'num_players_river', 'potsize_river', 
-'num_players_showdown', 'potsize_showdown')
 
-names(hdb) <- colNames
+
