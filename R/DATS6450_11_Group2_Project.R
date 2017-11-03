@@ -65,15 +65,17 @@ player_data <-
 # Update column names
 playerColNames <- c('player', 'timestamp', 'num_players', 'position', 'preflop',
                     'flop', 'turn', 'river', 'bankroll', 'action', 
-                    'winnings', 'card1', 'card2')
+                    'winnings', 'player_hand1', 'player_hand2')
 
 names(player_data) <- playerColNames
 
-# update timestamp class to merge
+# update columns for merge
 player_data$timestamp <- as.numeric(player_data$timestamp)
+finalPlayer <- player_data %>% select(-num_players)
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # Merge Files ----
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 allDat <- merge(hdb, player_data, by = 'timestamp', all.x = TRUE)
+setorder(allDat, timestamp, position)
