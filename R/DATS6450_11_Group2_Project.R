@@ -77,5 +77,5 @@ finalPlayer <- player_data %>% select(-num_players)
 # Merge Files ----
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-allDat <- merge(hdb, player_data, by = 'timestamp', all.x = TRUE)
+allDat <- merge(hdb, finalPlayer, by = 'timestamp', all.x = TRUE)
 setorder(allDat, timestamp, position)
