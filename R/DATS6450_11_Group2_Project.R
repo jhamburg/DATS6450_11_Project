@@ -85,3 +85,60 @@ finalPlayer <-
 
 allDat <- merge(hdb, finalPlayer, by = 'timestamp', all.x = TRUE)
 setorder(allDat, timestamp, position)
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Get player actions per hand ----
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+# In this section, will get thes sequence of player actions per hand between 
+# whom bet, checked, folded, etc...
+
+# Create a vector to substitute actions
+actionNames <- c('-', 'B', 'f', 'k', 'b', 'c', 'r', 'A', 'Q', 'K')
+actions <- c('no_action', 'blind', 'fold', 'check', 'bet', 'call',
+                 'raise', 'all_in', 'quit', 'kicked')
+names(actions) <- actionNames
+
+rounds <- c('preflop', 'flop', 'turn', 'river')
+rndNums <- length(rounds)
+
+# Create steps in the game. To do that will cycle through each 
+# betting timeframe (preflop, flop, etc..) and split out actions into multiple
+# columns. After deleting out no-action and stacking columns underneath each
+# other, it should be in order.
+createActionPerRound <- function(round) {
+  
+  # split up actions during the round
+  splitActs <- 
+    stringr::str_split_fixed(allDat[[round]], pattern = "", n = Inf)
+  colnames(splitActs) <- paste0('round', seq(1, ncol(splitActs)))
+  playActDt <- data.frame('timestamp' = allDat$timestamp,
+                          'player' = allDat$player, 
+                          'position' = allDat$position,
+                          splitActs, 
+                          stringsAsFactors = FALSE)
+  # order the actions
+  byAct <- 
+    playActDt %>% 
+    melt(id.vars = c('timestamp', 'player', 'position'), 
+         value.name = 'action') %>% 
+    filter(!(action %in% c("", "-"))) %>% 
+    select(-variable) %>% 
+    mutate('round' = round,
+           'action' = actions[action]) %>%
+    mutate('action' = case_when(
+                position == 1 & action == 'blind' ~ 'small_blind',
+                position == 2 & action == 'blind' ~ 'big_blind',
+                TRUE                              ~ action
+                )) %>% 
+    select(-position) %>% 
+    unique
+  
+  return(byAct)
+}
+  
+allActs <- lapply(rounds, createActionPerRound) %>% bind_rows %>% as.tbl
+
+allActsGroup <- 
+  allActs %>% group_by(timestamp, round)
+
