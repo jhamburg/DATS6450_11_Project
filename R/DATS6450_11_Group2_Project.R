@@ -137,8 +137,5 @@ createActionPerRound <- function(round) {
   return(byAct)
 }
   
-allActs <- lapply(rounds, createActionPerRound) %>% bind_rows %>% as.tbl
-
-allActsGroup <- 
-  allActs %>% group_by(timestamp, round)
-
+allActs <- 
+  lapply(rounds, createActionPerRound) %>% bind_rows %>% as.tbl
