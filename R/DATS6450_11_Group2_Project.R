@@ -69,9 +69,15 @@ playerColNames <- c('player', 'timestamp', 'num_players', 'position', 'preflop',
 
 names(player_data) <- playerColNames
 
-# update columns for merge
-player_data$timestamp <- as.numeric(player_data$timestamp)
-finalPlayer <- player_data %>% select(-num_players)
+## make sure numeric vars are numeric
+numFunc <- function(x) ifelse(all(is.na(suppressWarnings(as.numeric(x)))), 
+                              'character', 'numeric')
+
+finalPlayer <- 
+  player_data %>% 
+  select(-num_players) %>% # Drop number of players (exists in hdb)
+  mutate_if(function(x) numFunc(x) == 'numeric', as.numeric)
+
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # Merge Files ----
