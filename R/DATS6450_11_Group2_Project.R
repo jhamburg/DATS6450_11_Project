@@ -53,7 +53,7 @@ allActs <-
   as.tbl
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-# Create dataset that can be used for MCMC ----
+# Create extra columns that can be used for analysis ----
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 # Small and Big blind columns
@@ -68,9 +68,9 @@ blinds <-
 initBet <- 
   allActs %>% 
   filter(action == 'bet') %>% 
-  mutate('flopBet' = ifelse(round == 'flop', 1, 0),
-         'turn' = ifelse(round == 'turn', 1, 0),
-         'river' = ifelse(round == 'river', 1, 0)) %>% 
+  mutate('flopInitBet' = ifelse(round == 'flop', 1, 0),
+         'turnInitBet' = ifelse(round == 'turn', 1, 0),
+         'riverInit' = ifelse(round == 'river', 1, 0)) %>% 
   select(-action, -round, -num_players, -ord)
 
 # Num time voluntarily puts chips into the pot ----
@@ -133,5 +133,21 @@ getCheckRaises <- function(vect) {
 checkRaises <- apply(twoActs, 1, getCheckRaises) %>% bind_rows
 finalCheckRaises <- 
   checkRaises %>% 
+  mutate('timestamp' = as.numeric(timestamp)) %>% # fix class for merging
   group_by(timestamp, player) %>% 
   summarize(checkRaises = sum(checkRaise))
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Create final dataset for analysis ----
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+finalDat <- 
+  allDat %>% 
+  select(-card1, -card2, -card3, -card4, -card5, -preflop, -flop, -turn, -river,
+         -player_hand1, -player_hand2) %>% 
+  select(timestamp, hand_num, player, everything()) %>% # reorder columns
+  left_join(blinds, by = c('timestamp', 'player')) %>% 
+  left_join(initBet, by = c('timestamp', 'player')) %>% 
+  left_join(betsRaises, by = c('timestamp', 'player')) %>% 
+  left_join(finalCheckRaises, by = c('timestamp', 'player')) %>% 
+  as.tbl
