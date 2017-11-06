@@ -51,3 +51,15 @@ allActs <-
             )) %>% 
   arrange(timestamp, ord) %>% 
   as.tbl
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Create dataset that can be used for MCMC ----
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+# Small and Big blind columns
+blinds <- 
+  allActs %>% 
+  filter(grepl('blind', action)) %>% 
+  mutate('small_blind' = ifelse(action == 'small_blind', 1, 0),
+         'big_blind' = ifelse(action == 'big_blind', 1, 0)) %>% 
+  select(-round, -action)
