@@ -63,3 +63,20 @@ blinds <-
   mutate('small_blind' = ifelse(action == 'small_blind', 1, 0),
          'big_blind' = ifelse(action == 'big_blind', 1, 0)) %>% 
   select(-round, -action)
+
+# Whom bet first during the round ----
+initBet <- 
+  allActs %>% 
+  filter(action == 'bet') %>% 
+  mutate('flopBet' = ifelse(round == 'flop', 1, 0),
+         'turn' = ifelse(round == 'turn', 1, 0),
+         'river' = ifelse(round == 'river', 1, 0)) %>% 
+  select(-action, -round)
+
+# Num time voluntarily puts chips into the pot ----
+betsRaises <- 
+  allActs %>% 
+  filter(action %in% c('bet', 'raise')) %>% 
+  group_by(timestamp, player) %>% 
+  summarize(num_raises = n())
+
