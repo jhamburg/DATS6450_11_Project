@@ -113,6 +113,7 @@ createActionPerRound <- function(round) {
     stringr::str_split_fixed(allDat[[round]], pattern = "", n = Inf)
   colnames(splitActs) <- paste0('round', seq(1, ncol(splitActs)))
   playActDt <- data.frame('timestamp' = allDat$timestamp,
+                          'num_players' = allDat$num_players,
                           'player' = allDat$player, 
                           'position' = allDat$position,
                           splitActs, 
@@ -120,9 +121,11 @@ createActionPerRound <- function(round) {
   # order the actions
   byAct <- 
     playActDt %>% 
-    melt(id.vars = c('timestamp', 'player', 'position'), 
+    melt(id.vars = c('timestamp', 'num_players', 'player', 'position'), 
          value.name = 'action') %>% 
     filter(!(action %in% c("", "-"))) %>% 
+    mutate(ord = (as.numeric(substr(variable, 6, 6)) * num_players) 
+                            + position) %>% 
     select(-variable) %>% 
     mutate('round' = round,
            'action' = actions[action]) %>%
@@ -137,5 +140,17 @@ createActionPerRound <- function(round) {
   return(byAct)
 }
   
+# Create a dataset of actions per each betting round
 allActs <- 
   lapply(rounds, createActionPerRound) %>% bind_rows %>% as.tbl
+
+# Update order variable to account for differences in round and sort dataset
+allActs <- 
+  allActs %>% 
+  mutate(ord = case_when(
+            round == 'flop' ~ ord + 100,
+            round == 'turn' ~ ord + 200,
+            round == 'river' ~ ord + 300,
+            TRUE             ~ ord
+            )) %>% 
+  arrange(timestamp, ord)
