@@ -80,3 +80,58 @@ betsRaises <-
   group_by(timestamp, player) %>% 
   summarize(num_raises = n())
 
+# Num time check raises ----
+
+### Create obj for later processing
+checkRaiseDat <- 
+  allActs %>% 
+  filter(action %in% c('check', 'raise'))
+
+### Find players with two actions in a round
+twoActs <- 
+  checkRaiseDat %>% 
+  group_by(timestamp, round, player) %>% 
+  summarize(n = n()) %>% 
+  filter(n > 1) %>% 
+  select(-n)
+
+# Run function on each two action scenario 
+getCheckRaises <- function(vect) {
+  # Filter data to current scenario
+  actions <- 
+    checkRaiseDat %>% 
+    filter(timestamp == vect[['timestamp']],
+           round == vect[['round']],
+           player == vect[['player']]) %>% 
+    arrange(ord) %>% 
+    pull(action)
+  
+  # Make sure both check and raise exist, if not exit
+  if (!('check' %in% actions & 'raise' %in% actions)) {
+    return(NULL)
+  }
+  
+  # Find what actions were checks and see if any of the actions right after
+  # it was a raise, indicating a "check then raise"
+  chks <- grep('check', actions)
+  checkRaise <- any(actions[chks + 1] == 'raise')
+  
+  if (checkRaise) {
+    return(
+      tibble(timestamp = vect[['timestamp']],
+           round = vect[['round']],
+           player = vect[['player']],
+           checkRaise = 1)
+    )
+  } else {
+    return(NULL)
+  }
+}
+
+# This step takes a while --- need to think of better, more efficient way
+# of doing this....
+checkRaises <- apply(twoActs, 1, getCheckRaises) %>% bind_rows
+finalCheckRaises <- 
+  checkRaises %>% 
+  group_by(timestamp, player) %>% 
+  summarize(checkRaises = sum(checkRaise))
