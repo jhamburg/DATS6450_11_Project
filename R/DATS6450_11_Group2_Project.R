@@ -159,3 +159,5 @@ finalDat <-
   left_join(numVpip, by = c('timestamp', 'player')) %>% 
   left_join(finalCheckRaises, by = c('timestamp', 'player')) %>% 
   as.tbl
+
+data.table::fwrite(finalDat, file.path('data', 'exampleOutput.csv'))
