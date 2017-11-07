@@ -2,9 +2,9 @@ readInRawFiles <- function(dataDir) {
   # Hand Database ----
   
   hdbFile <- file.path(dataDir, 'hdb')
-  hdbColNames <- c('timestamp', 'dealer', 'hand_num', 'num_players',
-                   'flop', 'turn', 'river', 'showdown', 'card1', 
-                   'card2', 'card3' ,'card4', 'card5')
+  hdbColNames <- c('timestamp', 'gameset', 'game', 'players',
+                   'flop', 'turn', 'river', 'showdown', 'flop1', 
+                   'flop2', 'flop3' ,'turn', 'river')
   
   # Read in HDB table
   hdbRaw <- data.table::fread(hdbFile, header = FALSE, fill = TRUE, 
@@ -14,9 +14,9 @@ readInRawFiles <- function(dataDir) {
   cleanHDB <- function(hdbRaw) {
     
     hdbTmp <- copy(hdbRaw)
-    newColNames <- c('num_players_flop', 'potsize_flop', 'num_players_turn',
-                     'potsize_turn', 'num_players_river', 'potsize_river', 
-                     'num_players_showdown', 'potsize_showdown')
+    newColNames <- c('playersflop', 'potflop', 'playersturn',
+                     'potturn', 'playersriver', 'potriver', 
+                     'playersshowdown', 'potshowdown')
     
     vars <- c('flop', 'turn', 'river', 'showdown')
     
@@ -55,9 +55,10 @@ readInRawFiles <- function(dataDir) {
     data.table::rbindlist(use.names = TRUE)
   
   # Update column names
-  playerColNames <- c('player', 'timestamp', 'num_players', 'position', 'preflop',
-                      'flop', 'turn', 'river', 'bankroll', 'action', 
-                      'winnings', 'player_hand1', 'player_hand2')
+  playerColNames <- c('playername', 'timestamp', 'players', 'position', 
+                      'preflopaction', 'flopaction', 'turnaction', 
+                      'riveraction', 'bankroll', 'totalaction', 'won', 
+                      'player_hand1', 'player_hand2')
   
   names(player_data) <- playerColNames
   
@@ -67,7 +68,7 @@ readInRawFiles <- function(dataDir) {
   
   finalPlayer <- 
     player_data %>% 
-    select(-num_players) %>% # Drop number of players (exists in hdb)
+    select(-players) %>% # Drop number of players (exists in hdb)
     mutate_if(function(x) numFunc(x) == 'numeric', as.numeric)
   
   

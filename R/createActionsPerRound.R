@@ -5,22 +5,24 @@
 createActionPerRound <- function(round) {
   
   # split up actions during the round
+  roundVar <- paste0(round, 'action')
+  
   splitActs <- 
-    stringr::str_split_fixed(allDat[[round]], pattern = "", n = Inf)
+    stringr::str_split_fixed(allDat[[roundVar]], pattern = "", n = Inf)
   colnames(splitActs) <- paste0('round', seq(1, ncol(splitActs)))
   playActDt <- data.frame('timestamp' = allDat$timestamp,
-                          'num_players' = allDat$num_players,
-                          'player' = allDat$player, 
+                          'players' = allDat$players,
+                          'playername' = allDat$playername, 
                           'position' = allDat$position,
                           splitActs, 
                           stringsAsFactors = FALSE)
   # order the actions
   byAct <- 
     playActDt %>% 
-    melt(id.vars = c('timestamp', 'num_players', 'player', 'position'), 
+    melt(id.vars = c('timestamp', 'players', 'playername', 'position'), 
          value.name = 'action') %>% 
     filter(!(action %in% c("", "-"))) %>% 
-    mutate(ord = (as.numeric(substr(variable, 6, 6)) * num_players) 
+    mutate(ord = (as.numeric(substr(variable, 6, 6)) * players) 
            + position) %>% 
     select(-variable) %>% 
     mutate('round' = round,

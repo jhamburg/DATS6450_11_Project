@@ -20,7 +20,8 @@ sourceDir('R')
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # Read in Files ----
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-allDat <- readInRawFiles(dataDir)
+# allDat <- readInRawFiles(dataDir)
+allDat <- data.table::fread(file.path('data', 'pokerData.csv'))
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # Get player actions per hand ----
@@ -62,7 +63,7 @@ blinds <-
   filter(grepl('blind', action)) %>% 
   mutate('small_blind' = ifelse(action == 'small_blind', 1, 0),
          'big_blind' = ifelse(action == 'big_blind', 1, 0)) %>% 
-  select(-round, -action, -num_players, -ord)
+  select(-round, -action, -players, -ord)
 
 # Whom bet first during the round ----
 initBet <- 
@@ -71,20 +72,20 @@ initBet <-
   mutate('flopInitBet' = ifelse(round == 'flop', 1, 0),
          'turnInitBet' = ifelse(round == 'turn', 1, 0),
          'riverInit' = ifelse(round == 'river', 1, 0)) %>% 
-  select(-action, -round, -num_players, -ord)
+  select(-action, -round, -players, -ord)
 
 # Num time raises the pot ----
 betsRaises <- 
   allActs %>% 
   filter(action %in% c('bet', 'raise')) %>% 
-  group_by(timestamp, player) %>% 
+  group_by(timestamp, playername) %>% 
   summarize(num_raises = n())
 
 # Num time voluntarily puts chips in the pot ----
 numVpip <- 
   allActs %>% 
   filter(action %in% c('bet', 'raise', 'call')) %>% 
-  group_by(timestamp, player) %>% 
+  group_by(timestamp, playername) %>% 
   summarize(num_vpip = n())
 
 # Num time check raises ----
@@ -97,7 +98,7 @@ checkRaiseDat <-
 ### Find players with two actions in a round
 twoActs <- 
   checkRaiseDat %>% 
-  group_by(timestamp, round, player) %>% 
+  group_by(timestamp, round, playername) %>% 
   summarize(n = n()) %>% 
   filter(n > 1) %>% 
   select(-n)
@@ -109,7 +110,7 @@ getCheckRaises <- function(vect) {
     checkRaiseDat %>% 
     filter(timestamp == vect[['timestamp']],
            round == vect[['round']],
-           player == vect[['player']]) %>% 
+           playername == vect[['playername']]) %>% 
     arrange(ord) %>% 
     pull(action)
   
@@ -127,7 +128,7 @@ getCheckRaises <- function(vect) {
     return(
       tibble(timestamp = vect[['timestamp']],
            round = vect[['round']],
-           player = vect[['player']],
+           playername = vect[['playername']],
            checkRaise = 1)
     )
   } else {
@@ -141,7 +142,7 @@ checkRaises <- apply(twoActs, 1, getCheckRaises) %>% bind_rows
 finalCheckRaises <- 
   checkRaises %>% 
   mutate('timestamp' = as.numeric(timestamp)) %>% # fix class for merging
-  group_by(timestamp, player) %>% 
+  group_by(timestamp, playername) %>% 
   summarize(checkRaises = sum(checkRaise))
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -152,12 +153,12 @@ finalDat <-
   allDat %>% 
   select(-card1, -card2, -card3, -card4, -card5, -preflop, -flop, -turn, -river,
          -player_hand1, -player_hand2) %>% 
-  select(timestamp, hand_num, player, everything()) %>% # reorder columns
-  left_join(blinds, by = c('timestamp', 'player')) %>% 
-  left_join(initBet, by = c('timestamp', 'player')) %>% 
-  left_join(betsRaises, by = c('timestamp', 'player')) %>% 
-  left_join(numVpip, by = c('timestamp', 'player')) %>% 
-  left_join(finalCheckRaises, by = c('timestamp', 'player')) %>% 
+  select(timestamp, hand_num, playername, everything()) %>% # reorder columns
+  left_join(blinds, by = c('timestamp', 'playername')) %>% 
+  left_join(initBet, by = c('timestamp', 'playername')) %>% 
+  left_join(betsRaises, by = c('timestamp', 'playername')) %>% 
+  left_join(numVpip, by = c('timestamp', 'playername')) %>% 
+  left_join(finalCheckRaises, by = c('timestamp', 'playername')) %>% 
   as.tbl
 
 data.table::fwrite(finalDat, file.path('data', 'exampleOutput.csv'))
