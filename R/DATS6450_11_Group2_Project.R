@@ -73,12 +73,19 @@ initBet <-
          'riverInit' = ifelse(round == 'river', 1, 0)) %>% 
   select(-action, -round, -num_players, -ord)
 
-# Num time voluntarily puts chips into the pot ----
+# Num time raises the pot ----
 betsRaises <- 
   allActs %>% 
   filter(action %in% c('bet', 'raise')) %>% 
   group_by(timestamp, player) %>% 
   summarize(num_raises = n())
+
+# Num time voluntarily puts chips in the pot ----
+numVpip <- 
+  allActs %>% 
+  filter(action %in% c('bet', 'raise', 'call')) %>% 
+  group_by(timestamp, player) %>% 
+  summarize(num_vpip = n())
 
 # Num time check raises ----
 
@@ -149,5 +156,6 @@ finalDat <-
   left_join(blinds, by = c('timestamp', 'player')) %>% 
   left_join(initBet, by = c('timestamp', 'player')) %>% 
   left_join(betsRaises, by = c('timestamp', 'player')) %>% 
+  left_join(numVpip, by = c('timestamp', 'player')) %>% 
   left_join(finalCheckRaises, by = c('timestamp', 'player')) %>% 
   as.tbl
