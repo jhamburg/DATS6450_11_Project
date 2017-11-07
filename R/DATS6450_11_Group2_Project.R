@@ -151,9 +151,9 @@ finalCheckRaises <-
 
 finalDat <- 
   allDat %>% 
-  select(-card1, -card2, -card3, -card4, -card5, -preflop, -flop, -turn, -river,
-         -player_hand1, -player_hand2) %>% 
-  select(timestamp, hand_num, playername, everything()) %>% # reorder columns
+  select(-flop1, -flop2, -flop3, -turn, -river, -preflopaction, -flopaction,
+         -turnaction, -riveraction, -card1, -card2, -`_merge`, -gameset) %>% 
+  select(timestamp, game, playername, everything()) %>% # reorder columns
   left_join(blinds, by = c('timestamp', 'playername')) %>% 
   left_join(initBet, by = c('timestamp', 'playername')) %>% 
   left_join(betsRaises, by = c('timestamp', 'playername')) %>% 
