@@ -149,7 +149,7 @@ finalCheckRaises <-
 # Create final dataset for analysis ----
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-finalDat <- 
+cleanedDat <- 
   allDat %>% 
   select(-flop1, -flop2, -flop3, -turn, -river, -preflopaction, -flopaction,
          -turnaction, -riveraction, -card1, -card2, -`_merge`, -gameset) %>% 
@@ -159,6 +159,44 @@ finalDat <-
   left_join(betsRaises, by = c('timestamp', 'playername')) %>% 
   left_join(numVpip, by = c('timestamp', 'playername')) %>% 
   left_join(finalCheckRaises, by = c('timestamp', 'playername')) %>% 
+  mutate('winner' = ifelse(won > 0, 1, 0)) %>% 
   as.tbl
 
-data.table::fwrite(finalDat, file.path('data', 'exampleOutput.csv'))
+data.table::fwrite(cleanedDat, file.path('data', 'exampleOutput.csv'))
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Exploratory Analysis ----
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+# check to see the distribution of hands player by player and games won by player
+playerStats <- 
+  cleanedDat %>% 
+  group_by(playername) %>% 
+  summarize(handsPlayed = n(),
+            gamesWon = sum(winner))
+
+otherPlayerStats <- 
+  cleanedDat %>%
+  select(-timestamp, -game, -winner) %>% 
+  group_by(playername) %>% 
+  summarize_all(c("mean", "median"))
+
+ggplot(playerStats, aes(handsPlayed)) +
+  geom_density()
+
+ggplot(playerStats, aes(gamesWon)) +
+  geom_density()
+
+
+# The majority of players won less than 100 hands. Will keep only
+# those with over 100 wins to make sure there is a good sample of 
+# wins amongst the remaining players
+playersWith100Wins <- 
+  playerStats %>% 
+  filter(gamesWon > 100) %>% 
+  pull(playername)
+
+
+finalDat <-
+  cleanedDat %>% 
+  filter(playername %in% playersWith100Wins)
