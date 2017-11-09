@@ -1,8 +1,6 @@
 library(data.table)
 library(tidyverse)
 
-source('R/readInRawFunctions.R')
-
 # Raw Data Directory
 dataDir <- file.path('data', '199807')
 
@@ -71,7 +69,7 @@ initBet <-
   filter(action == 'bet') %>% 
   mutate('flopInitBet' = ifelse(round == 'flop', 1, 0),
          'turnInitBet' = ifelse(round == 'turn', 1, 0),
-         'riverInit' = ifelse(round == 'river', 1, 0)) %>% 
+         'riverInitBet' = ifelse(round == 'river', 1, 0)) %>% 
   select(-action, -round, -players, -ord)
 
 # Num time raises the pot ----
@@ -143,22 +141,25 @@ finalCheckRaises <-
   checkRaises %>% 
   mutate('timestamp' = as.numeric(timestamp)) %>% # fix class for merging
   group_by(timestamp, playername) %>% 
-  summarize(checkRaises = sum(checkRaise))
+  summarize(num_checkRaises = sum(checkRaise))
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # Create final dataset for analysis ----
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-cleanedDat <- 
-  allDat %>% 
+# Will join over calculated columns, convert mising data to 0, & create 
+# dependent variable winner
+cleanedDat <-
+  allDat %>%
   select(-flop1, -flop2, -flop3, -turn, -river, -preflopaction, -flopaction,
-         -turnaction, -riveraction, -card1, -card2, -`_merge`, -gameset) %>% 
+         -turnaction, -riveraction, -card1, -card2, -`_merge`, -gameset) %>%
   select(timestamp, game, playername, everything()) %>% # reorder columns
   left_join(blinds, by = c('timestamp', 'playername')) %>% 
   left_join(initBet, by = c('timestamp', 'playername')) %>% 
   left_join(betsRaises, by = c('timestamp', 'playername')) %>% 
   left_join(numVpip, by = c('timestamp', 'playername')) %>% 
-  left_join(finalCheckRaises, by = c('timestamp', 'playername')) %>% 
+  left_join(finalCheckRaises, by = c('timestamp', 'playername')) %>%
+  mutate_all(function(x) ifelse(is.null(x) & is.numeric(x), 0, x)) %>% 
   mutate('winner' = ifelse(won > 0, 1, 0)) %>% 
   as.tbl
 
