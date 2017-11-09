@@ -163,8 +163,6 @@ cleanedDat <-
   mutate('winner' = ifelse(won > 0, 1, 0)) %>% 
   as.tbl
 
-data.table::fwrite(cleanedDat, file.path('data', 'exampleOutput.csv'))
-
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # Exploratory Analysis ----
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -198,6 +196,17 @@ playersWith100Wins <-
   pull(playername)
 
 
+# Create factor var object for later
+factorVars <- c('small_blind', 'big_blind', 'flopInitBet', 'turnInitBet', 
+                'riverInitBet', 'winner')
+
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Create final dataset ----
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 finalDat <-
   cleanedDat %>% 
   filter(playername %in% playersWith100Wins)
+
+data.table::fwrite(finalDat, file.path('data', 'exampleOutput.csv'))
+
