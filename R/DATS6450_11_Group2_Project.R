@@ -1,5 +1,6 @@
 library(data.table)
 library(tidyverse)
+library(corrplot)
 
 # Raw Data Directory
 dataDir <- file.path('data', '199807')
@@ -199,6 +200,15 @@ playersWith100Wins <-
 # Create factor var object for later
 factorVars <- c('small_blind', 'big_blind', 'flopInitBet', 'turnInitBet', 
                 'riverInitBet', 'winner')
+charVars <- c('playername')
+
+# Look at correlation plot for numeric variables. Will leave binary variables in
+cleanedDat %>% 
+  filter(playername %in% playersWith100Wins) %>% 
+  select(-one_of(charVars)) %>% 
+  as.matrix %>% 
+  cor %>% 
+  corrplot(method = 'ellipse')
 
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
