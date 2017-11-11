@@ -163,6 +163,7 @@ cleanedDat <-
   left_join(finalCheckRaises, by = c('timestamp', 'playername')) %>%
   mutate_all(function(x) ifelse(is.na(x), 0, x)) %>%
   mutate('winner' = ifelse(won > 0, 1, 0)) %>% 
+  select(-timestamp, -game) %>% # remove time variables
   as.tbl
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -178,7 +179,7 @@ playerStats <-
 
 otherPlayerStats <- 
   cleanedDat %>%
-  select(-timestamp, -game, -winner) %>% 
+  select(-winner) %>% 
   group_by(playername) %>% 
   summarize_all(c("mean", "median"))
 
