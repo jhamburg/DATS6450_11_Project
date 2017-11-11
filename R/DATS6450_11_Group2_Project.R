@@ -159,7 +159,7 @@ cleanedDat <-
   left_join(betsRaises, by = c('timestamp', 'playername')) %>% 
   left_join(numVpip, by = c('timestamp', 'playername')) %>% 
   left_join(finalCheckRaises, by = c('timestamp', 'playername')) %>%
-  mutate_all(function(x) ifelse(is.null(x) & is.numeric(x), 0, x)) %>% 
+  mutate_all(function(x) ifelse(is.na(x), 0, x)) %>%
   mutate('winner' = ifelse(won > 0, 1, 0)) %>% 
   as.tbl
 
