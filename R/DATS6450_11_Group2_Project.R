@@ -1,6 +1,7 @@
 library(data.table)
 library(tidyverse)
 library(corrplot)
+library(Boruta)
 
 # Raw Data Directory
 dataDir <- file.path('data', '199807')
@@ -202,14 +203,27 @@ factorVars <- c('small_blind', 'big_blind', 'flopInitBet', 'turnInitBet',
                 'riverInitBet', 'winner')
 charVars <- c('playername')
 
-# Look at correlation plot for numeric variables. Will leave binary variables in
-cleanedDat %>% 
+filteredDat <- 
+  cleanedDat %>% 
   filter(playername %in% playersWith100Wins) %>% 
-  select(-one_of(charVars)) %>% 
+  select(-one_of(charVars))
+
+# Look at correlation plot for numeric variables. Will leave binary variables in
+filteredDat %>% 
   as.matrix %>% 
   cor %>% 
   corrplot(method = 'ellipse')
 
+# Feature selection through Boruta
+borutaOut <- Boruta(winner ~ ., data = filteredDat, doTrace = 2)
+
+# collect Confirmed and Tentative variables
+borutaSignif <- 
+  borutaOut$finalDecision[borutaOut$finalDecision %in% 
+                                c("Confirmed", "Tentative")] %>% 
+  names
+
+print(borutaSignif) 
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # Create final dataset ----
