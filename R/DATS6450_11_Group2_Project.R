@@ -145,7 +145,20 @@ finalCheckRaises <-
   group_by(timestamp, playername) %>% 
   summarize(num_checkRaises = sum(checkRaise))
 
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Given that the amount of money in each round is highly correlated with 
+# one another, will drop those variables in lieu of an average amount added
+# per round 
+avgBet <-
+  allDat %>%
+  select(timestamp, potflop, potturn, potriver, potshowdown) %>% 
+  mutate(betTurn = potturn - potflop,
+         betRiver = potriver - potturn, 
+         betShowdown = potshowdown - potriver) %>% 
+  group_by(timestamp) %>% 
+  summarise(avgBet = mean(c(potflop, betTurn, betRiver, betShowdown)))
+
+
+`#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # Create final dataset for analysis ----
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -154,13 +167,15 @@ finalCheckRaises <-
 cleanedDat <-
   allDat %>%
   select(-flop1, -flop2, -flop3, -turn, -river, -preflopaction, -flopaction,
-         -turnaction, -riveraction, -card1, -card2, -`_merge`, -gameset) %>%
+         -turnaction, -riveraction, -card1, -card2, -`_merge`, -gameset,
+         -potflop, -potturn, -potriver, -potshowdown) %>%
   select(timestamp, game, playername, everything()) %>% # reorder columns
   left_join(blinds, by = c('timestamp', 'playername')) %>% 
   left_join(initBet, by = c('timestamp', 'playername')) %>% 
   left_join(betsRaises, by = c('timestamp', 'playername')) %>% 
   left_join(numVpip, by = c('timestamp', 'playername')) %>% 
   left_join(finalCheckRaises, by = c('timestamp', 'playername')) %>%
+  left_join(avgBet, by = 'timestamp') %>% 
   mutate_all(function(x) ifelse(is.na(x), 0, x)) %>%
   mutate('winner' = ifelse(won > 0, 1, 0)) %>% 
   select(-timestamp, -game) %>% # remove time variables
