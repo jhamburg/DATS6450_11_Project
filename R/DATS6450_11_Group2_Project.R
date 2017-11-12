@@ -166,9 +166,10 @@ avgBet <-
 # dependent variable winner
 cleanedDat <-
   allDat %>%
+  mutate('winner' = ifelse(won > 0, 1, 0)) %>% 
   select(-flop1, -flop2, -flop3, -turn, -river, -preflopaction, -flopaction,
          -turnaction, -riveraction, -card1, -card2, -`_merge`, -gameset,
-         -potflop, -potturn, -potriver, -potshowdown) %>%
+         -potflop, -potturn, -potriver, -potshowdown, -won) %>%
   select(timestamp, game, playername, everything()) %>% # reorder columns
   left_join(blinds, by = c('timestamp', 'playername')) %>% 
   left_join(initBet, by = c('timestamp', 'playername')) %>% 
@@ -177,7 +178,6 @@ cleanedDat <-
   left_join(finalCheckRaises, by = c('timestamp', 'playername')) %>%
   left_join(avgBet, by = 'timestamp') %>% 
   mutate_all(function(x) ifelse(is.na(x), 0, x)) %>%
-  mutate('winner' = ifelse(won > 0, 1, 0)) %>% 
   select(-timestamp, -game) %>% # remove time variables
   as.tbl
 
