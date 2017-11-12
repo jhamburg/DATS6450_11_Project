@@ -231,7 +231,10 @@ filteredDat %>%
   corrplot(method = 'ellipse')
 
 # Feature selection through Boruta
-borutaOut <- Boruta(winner ~ ., data = filteredDat, doTrace = 2)
+borutaOut <- Boruta(winner ~ .,
+                    data = mutate_at(filteredDat, vars(one_of(factorVars)), 
+                                     as.factor),
+                    doTrace = 2)
 
 # collect Confirmed and Tentative variables
 borutaSignif <- 
