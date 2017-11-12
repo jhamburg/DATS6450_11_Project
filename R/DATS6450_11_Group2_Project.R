@@ -57,14 +57,6 @@ allActs <-
 # Create extra columns that can be used for analysis ----
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-# Small and Big blind columns
-blinds <- 
-  allActs %>% 
-  filter(grepl('blind', action)) %>% 
-  mutate('small_blind' = ifelse(action == 'small_blind', 1, 0),
-         'big_blind' = ifelse(action == 'big_blind', 1, 0)) %>% 
-  select(-round, -action, -players, -ord)
-
 # Whom bet first during the round ----
 initBet <- 
   allActs %>% 
@@ -157,21 +149,42 @@ avgBet <-
   group_by(timestamp) %>% 
   summarise(avgBet = mean(c(potflop, betTurn, betRiver, betShowdown)))
 
+# Will remove hands where everyone folds and the big blind wins
+allFoldHands <-
+  allActs %>% 
+  group_by(timestamp, players) %>% 
+  summarise(n = n()) %>% 
+  filter(players + 1 == n) %>% 
+  pull(timestamp)
 
-`#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # Create final dataset for analysis ----
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-# Will join over calculated columns, convert mising data to 0, & create 
-# dependent variable winner
+# Will join over calculated columns, convert mising data to 0, create 
+# dependent variable winner, and drop the following variables:
+#   - the cards since looking for betting strategy independent of cards
+#     * flop1, flop2, flop3, turn, river, card1, card2
+#   - action variables since accounted for in calculated variables
+#     * preflopaction, flopaction, turnaction, riveraction
+#   - extra player count variables --- all of the variables will be highly 
+#     correlated so should only keep 1. Keeping flop count to indicate # of 
+#     players that sees cards
+#     * players, playersturn, playersriver, playersshowdown
+#   - most money variables, since strategy should be independent of money
+#     * potflop, potturn, potriver, potshowdown, bankroll, totalaction
+#   - extra variables 
+#     * _merge, gameset, won (already accounted for in winning)
+
 cleanedDat <-
   allDat %>%
+  filter(!(timestamp %in% allFoldHands)) %>% 
   mutate('winner' = ifelse(won > 0, 1, 0)) %>% 
   select(-flop1, -flop2, -flop3, -turn, -river, -preflopaction, -flopaction,
          -turnaction, -riveraction, -card1, -card2, -`_merge`, -gameset,
-         -potflop, -potturn, -potriver, -potshowdown, -won) %>%
+         -players, -playersturn, -playersriver, -playersshowdown, -potflop,
+         -potturn, -potriver, -potshowdown, -totalaction, -bankroll, -won) %>%
   select(timestamp, game, playername, everything()) %>% # reorder columns
-  left_join(blinds, by = c('timestamp', 'playername')) %>% 
   left_join(initBet, by = c('timestamp', 'playername')) %>% 
   left_join(betsRaises, by = c('timestamp', 'playername')) %>% 
   left_join(numVpip, by = c('timestamp', 'playername')) %>% 
@@ -215,8 +228,7 @@ playersWith100Wins <-
 
 
 # Create factor var object for later
-factorVars <- c('small_blind', 'big_blind', 'flopInitBet', 'turnInitBet', 
-                'riverInitBet', 'winner')
+factorVars <- c('flopInitBet', 'turnInitBet', 'riverInitBet', 'winner')
 charVars <- c('playername')
 
 filteredDat <- 
