@@ -242,11 +242,43 @@ filteredDat %>%
   cor %>% 
   corrplot(method = 'ellipse')
 
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Feature Selection ----
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+# Check normal logistic regression
+checkLogRegForVars <- function(dat) {
+  # Original model with all variables
+  logRegMod <- glm(winner ~ ., family = 'binomial',
+                   data = dat)
+  # select sig. variables
+  sumLogReg <- summary(logRegMod)
+  print(sumLogReg)
+  
+  toselect.x <- sumLogReg$coeff[-1,4] < 0.01
+  relevant.x <- names(toselect.x)[toselect.x == TRUE] 
+  
+  # formula with only sig variables
+  sig.formula <- as.formula(paste("winner ~",paste(relevant.x, collapse= "+")))
+  sig.model <- glm(formula = sig.formula, family = 'binomial',
+                   data = dat)
+  
+  print(summary(sig.model))
+  return(relevant.x)
+}
+
+fixedFactorDat <- 
+  filteredDat %>% 
+  mutate_at(vars(one_of(factorVars)), as.factor)
+
+sigVars1 <- checkLogRegForVars(filteredDat)
+
 # Feature selection through Boruta
 borutaOut <- Boruta(winner ~ .,
-                    data = mutate_at(filteredDat, vars(one_of(factorVars)), 
-                                     as.factor),
+                    data = fixedFactorDat,
                     doTrace = 2)
+
+plot(borutaOut)
 
 # collect Confirmed and Tentative variables
 borutaSignif <- 
