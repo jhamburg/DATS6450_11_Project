@@ -1,57 +1,8 @@
 readInRawFiles <- function(dataDir) {
-  
   months <- paste(dataDir, list.files(dataDir), sep = '/')
   dat <- lapply(months, readInMonthRawFiles)
   return(dat %>% bind_rows)
 }
-
-
-# # readInRawFiles <- function(dataDir) {
-# #   
-# #   # Unzip tar files
-#   tarFiles <- list.files(dataDir, pattern = 'tgz')
-#   indx <- regexpr('[[:digit:]]{6}', tarFiles)
-#   months <- substr(tarFiles, indx, indx + 5)
-# 
-#   # Need to get a list of the files since some characters can't be used
-#   # in windows for player files
-#   files <- untar(file.path(dataDir, tarFiles[15]), list = TRUE)
-#   
-#   nonPDBFiles <- 
-#     files[grepl('hdb|hroster', files)]
-#   
-#   PDBFiles <- 
-#     files[grepl('pdb', files)]
-#   
-#   updNonPDBFiles <- 
-#     nonPDBFiles %>% substring(15)
-#   
-#   updPDBFiles <- 
-#     PDBFiles %>%
-#     substring(23) %>% 
-#     gsub('\\|', '&', x = .) %>% 
-#     gsub('\\/', '#', x = .) %>% 
-#     gsub('\\\\', '~', x = ., perl = TRUE) %>% 
-#     gsub('\\\\<', '@', x = .) %>%
-#     gsub('\\\\>', '!', x = .) %>%
-#     gsub('\\:', ';', x = .) %>% 
-#     gsub('\\?', '=', x = .) %>% 
-#     gsub('\\"', '%', x = .) %>% 
-#     gsub('\\*', '+', x = .) %>% 
-#     file.path('pdb', .)
-#   
-#   rawFiles <- paste('data', c(nonPDBFiles, PDBFiles), sep = '/')
-#   newFiles <- paste('data', months[15], 
-#                     c(updNonPDBFiles, updPDBFiles), sep = '/')
-#   
-#   purrr::map2(rawFiles, newFiles,
-#               function(x, y) untar(file.path(dataDir, tarFiles[15]),
-#                                    files = x[1],
-#                                    exdir = y[1]))
-# #   
-# #   
-# # }
-
 
 readInMonthRawFiles <- function(monthDir) {
   # helper function to make sure numeric vars are numeric
