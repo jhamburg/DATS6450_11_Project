@@ -4,7 +4,7 @@ library(corrplot)
 library(Boruta)
 
 # Raw Data Directory
-dataDir <- file.path('data', '199807')
+dataDir <- file.path('data', 'holdem')
 
 # Source in other R files
 sourceDir <- function(path, trace = TRUE, ...) {

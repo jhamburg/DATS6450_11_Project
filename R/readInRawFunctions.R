@@ -1,53 +1,116 @@
 readInRawFiles <- function(dataDir) {
-  # Hand Database ----
   
-  hdbFile <- file.path(dataDir, 'hdb')
+  months <- paste(dataDir, list.files(dataDir), sep = '/')
+  dat <- lapply(months, readInMonthRawFiles)
+  return(dat %>% bind_rows)
+}
+
+
+# # readInRawFiles <- function(dataDir) {
+# #   
+# #   # Unzip tar files
+#   tarFiles <- list.files(dataDir, pattern = 'tgz')
+#   indx <- regexpr('[[:digit:]]{6}', tarFiles)
+#   months <- substr(tarFiles, indx, indx + 5)
+# 
+#   # Need to get a list of the files since some characters can't be used
+#   # in windows for player files
+#   files <- untar(file.path(dataDir, tarFiles[15]), list = TRUE)
+#   
+#   nonPDBFiles <- 
+#     files[grepl('hdb|hroster', files)]
+#   
+#   PDBFiles <- 
+#     files[grepl('pdb', files)]
+#   
+#   updNonPDBFiles <- 
+#     nonPDBFiles %>% substring(15)
+#   
+#   updPDBFiles <- 
+#     PDBFiles %>%
+#     substring(23) %>% 
+#     gsub('\\|', '&', x = .) %>% 
+#     gsub('\\/', '#', x = .) %>% 
+#     gsub('\\\\', '~', x = ., perl = TRUE) %>% 
+#     gsub('\\\\<', '@', x = .) %>%
+#     gsub('\\\\>', '!', x = .) %>%
+#     gsub('\\:', ';', x = .) %>% 
+#     gsub('\\?', '=', x = .) %>% 
+#     gsub('\\"', '%', x = .) %>% 
+#     gsub('\\*', '+', x = .) %>% 
+#     file.path('pdb', .)
+#   
+#   rawFiles <- paste('data', c(nonPDBFiles, PDBFiles), sep = '/')
+#   newFiles <- paste('data', months[15], 
+#                     c(updNonPDBFiles, updPDBFiles), sep = '/')
+#   
+#   purrr::map2(rawFiles, newFiles,
+#               function(x, y) untar(file.path(dataDir, tarFiles[15]),
+#                                    files = x[1],
+#                                    exdir = y[1]))
+# #   
+# #   
+# # }
+
+
+readInMonthRawFiles <- function(monthDir) {
+  # helper function to make sure numeric vars are numeric
+  numFunc <- function(x) ifelse(all(is.na(suppressWarnings(as.numeric(x)))), 
+                                'character', 'numeric')
+  
+  # Hand Database ----
+  hdbFile <- file.path(monthDir, 'hdb')
   hdbColNames <- c('timestamp', 'gameset', 'game', 'players',
-                   'flop', 'turn', 'river', 'showdown', 'flop1', 
+                   'flopAct', 'turnAct', 'riverAct', 'showdownAct', 'flop1', 
                    'flop2', 'flop3' ,'turn', 'river')
   
   # Read in HDB table
-  hdbRaw <- data.table::fread(hdbFile, header = FALSE, fill = TRUE, 
-                              col.names = hdbColNames)
+  # hdbRaw <- data.table::fread(hdbFile, header = FALSE, fill = TRUE, quote = "",
+                              # col.names = hdbColNames, na.strings = "")
+  hdbRaw <- scan(hdbFile, what = as.list(rep("", 13)), sep = '', fill = TRUE, 
+                 na.strings = "", quiet = TRUE) %>% as.data.table
+  names(hdbRaw) <- hdbColNames
   
   # Splits up flop, turn, river, and showdown 
   cleanHDB <- function(hdbRaw) {
     
-    hdbTmp <- copy(hdbRaw)
+    hdbTmp <- data.table::copy(hdbRaw)
     newColNames <- c('playersflop', 'potflop', 'playersturn',
                      'potturn', 'playersriver', 'potriver', 
                      'playersshowdown', 'potshowdown')
     
     vars <- c('flop', 'turn', 'river', 'showdown')
-    
+
     for (var in vars) {
       newCols <- grep(var, newColNames, ignore.case = TRUE, value = TRUE)
-      hdbTmp <- tidyr::separate_(hdbTmp, var, newCols, sep = '/')
+      hdbTmp <- tidyr::separate_(hdbTmp, paste0(var, 'Act'), newCols, sep = '/')
     }
     
     return(hdbTmp)
   }
   
-  hdb <- cleanHDB(hdbRaw)
+  hdb <- 
+    cleanHDB(hdbRaw) %>% 
+    mutate_if(function(x) numFunc(x) == 'numeric', as.numeric)
   
   
   # Roster Database ----
   
-  rosterFile <- file.path(dataDir, 'hroster')
-  roster <- data.table::fread(rosterFile, header = FALSE, fill = TRUE)
-  
+  # rosterFile <- file.path(monthDir, 'hroster')
+  # roster <- data.table::fread(rosterFile, header = FALSE, fill = TRUE)
+
   
   # Player Database ----
   
   # Gets a list of all player files since each player's data is in a separate file
-  pdbDir <- file.path(dataDir, 'pdb')
+  pdbDir <- file.path(monthDir, 'pdb')
   playerFiles <- list.files(pdbDir)
   
   # Read in player data
   readPlayerDatabase <- function(player) {
     infile <- file.path(pdbDir, player)
     scan(infile, what = as.list(rep("", 13)), sep = '', fill = TRUE, 
-         na.strings = "") %>% as.data.table
+         na.strings = "", quiet = TRUE) %>% as.data.table
   }
   
   player_data <- 
@@ -62,16 +125,19 @@ readInRawFiles <- function(dataDir) {
   
   names(player_data) <- playerColNames
   
-  ## make sure numeric vars are numeric
-  numFunc <- function(x) ifelse(all(is.na(suppressWarnings(as.numeric(x)))), 
-                                'character', 'numeric')
-  
   finalPlayer <- 
     player_data %>% 
-    select(-players) %>% # Drop number of players (exists in hdb)
-    mutate_if(function(x) numFunc(x) == 'numeric', as.numeric)
+    select(-players) # Drop number of players (exists in hdb)
+
+  # Fix numeric columns and make sure player name is character
+  playerNumCols <- 
+    purrr::map_lgl(finalPlayer, function(x) numFunc(x) == 'numeric')
+  playerNumCols['playername'] <- FALSE 
   
-  
+  finalPlayer <-
+    finalPlayer %>% 
+    mutate_at(names(finalPlayer)[playerNumCols], as.numeric)
+
   #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   # Merge Files ----
   #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
