@@ -282,5 +282,4 @@ finalDat <-
   cleanedDat %>% 
   filter(playername %in% playersWith100Wins)
 
-data.table::fwrite(finalDat, file.path('data', 'exampleOutput.csv'))
-
+data.table::fwrite(finalDat, file.path('data', 'finalOutput.csv'))
