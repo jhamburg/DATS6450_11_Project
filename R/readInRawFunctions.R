@@ -1,9 +1,10 @@
+# Wrapper function to read in each month
 readInRawFiles <- function(dataDir) {
   months <- paste(dataDir, list.files(dataDir), sep = '/')
-  dat <- lapply(months, readInMonthRawFiles)
-  return(dat %>% bind_rows)
+  return(lapply(months, readInMonthRawFiles) %>% bind_rows)
 }
 
+# Function that will read in each month
 readInMonthRawFiles <- function(monthDir) {
   # helper function to make sure numeric vars are numeric
   numFunc <- function(x) ifelse(all(is.na(suppressWarnings(as.numeric(x)))), 
