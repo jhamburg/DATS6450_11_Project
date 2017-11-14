@@ -4,6 +4,11 @@ readInRawFiles <- function(dataDir) {
   return(lapply(months, readInMonthRawFiles) %>% bind_rows)
 }
 
+# Get a list of months that exist in the data directory
+getListofMonths <- function(dataDir) {
+  paste(dataDir, list.files(dataDir), sep = '/')
+}
+
 # Function that will read in each month
 readInMonthRawFiles <- function(monthDir) {
   # helper function to make sure numeric vars are numeric
